@@ -9,134 +9,128 @@
 <body>
   <div class="container" role="application" aria-labelledby="appTitle">
     <header class="header">
-      <h1 id="appTitle">Expense Tracker</h1>
-      <div class="controls">
-        <div class="summary" aria-live="polite">
-          <div class="summary-item">
-            <label for="balance">Balance</label>
-            <div id="balance" class="big">₦0</div>
-          </div>
-          <div class="summary-item">
-            <label for="income">Income</label>
-            <div id="income">₦0</div>
-          </div>
-          <div class="summary-item">
-            <label for="expense">Expense</label>
-            <div id="expense">₦0</div>
-          </div>
-        </div>
-        <div class="quick-actions">
-          <button id="undoBtn" title="Undo last delete" disabled>Undo</button>
-          <button id="exportJson">Export JSON</button>
-          <button id="exportCsv">Export CSV</button>
-          <label class="import-label">
-            <input type="file" id="importFile" accept="application/json,text/csv" hidden>
-            <button id="importBtn">Import</button>
-          </label>
-        </div>
+      <div>
+        <p class="eyebrow">Finance overview</p>
+        <h1 id="appTitle">Expense Tracker</h1>
       </div>
     </header>
 
-    <main>
-      <section class="form-section" aria-labelledby="formTitle">
-        <h2 id="formTitle">Add / Edit Transaction</h2>
-        <form id="transactionForm">
-          <input type="hidden" id="txId">
-          <div class="form-row">
-            <label for="description">Description</label>
-            <input type="text" id="description" placeholder="e.g., Freelance fee or Groceries" required>
+    <div class="app-grid">
+      <aside class="sidebar">
+        <div class="card summary-card" aria-live="polite">
+          <div class="card-header"><span class="kicker">Overview</span></div>
+          <div class="summary">
+            <div class="summary-item balance-item">
+              <label for="balance">Balance</label>
+              <div id="balance" class="big">₦0.00</div>
+            </div>
+            <div class="summary-item">
+              <label for="income">Income</label>
+              <div id="income">₦0.00</div>
+            </div>
+            <div class="summary-item expense-item">
+              <label for="expense">Expense</label>
+              <div id="expense">₦0.00</div>
+            </div>
           </div>
-          <div class="form-row">
-            <label for="date">Date</label>
-            <input type="date" id="date" required>
+        </div>
+
+        <div class="card quick-actions-card">
+          <div class="card-header"><span class="kicker">Actions</span></div>
+          <div class="quick-actions">
+            <button id="undoBtn" class="secondary" title="Undo last delete" disabled>Undo</button>
+            <button id="exportJson" class="secondary">Export JSON</button>
+            <button id="exportCsv" class="secondary">Export CSV</button>
+            <label class="import-label">
+              <input type="file" id="importFile" accept="application/json,text/csv" hidden>
+              <button id="importBtn" type="button">Import</button>
+            </label>
           </div>
-          <div class="form-row">
-            <label for="category">Category</label>
-            <select id="category" required>
-              <option value="">— Select category —</option>
-              <option value="Salary">Salary</option>
-              <option value="Business">Business</option>
-              <option value="Food">Food</option>
-              <option value="Transport">Transport</option>
-              <option value="Bills">Bills</option>
-              <option value="Entertainment">Entertainment</option>
-              <option value="Other">Other</option>
+        </div>
+      </aside>
+
+      <main class="main-column">
+        <section class="card form-section" aria-labelledby="formTitle">
+          <div class="section-head"><h2 id="formTitle">Add / Edit Transaction</h2></div>
+          <form id="transactionForm">
+            <input type="hidden" id="txId">
+            <div class="form-row">
+              <label for="description">Description</label>
+              <input type="text" id="description" placeholder="e.g., Freelance fee or Groceries" required>
+            </div>
+            <div class="form-grid">
+              <div class="form-row">
+                <label for="date">Date</label>
+                <input type="date" id="date" required>
+              </div>
+              <div class="form-row">
+                <label for="category">Category</label>
+                <select id="category" required>
+                  <option value="">— Select category —</option>
+                  <option value="Salary">Salary</option>
+                  <option value="Business">Business</option>
+                  <option value="Food">Food</option>
+                  <option value="Transport">Transport</option>
+                  <option value="Bills">Bills</option>
+                  <option value="Entertainment">Entertainment</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <label for="amount">Amount (negative for expense)</label>
+              <input type="number" id="amount" placeholder="e.g., 1200 or -500" required step="0.01">
+            </div>
+            <div class="form-actions">
+              <button type="submit" id="addBtn">Save Transaction</button>
+              <button type="button" id="clearBtn" class="clear-btn">Clear</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="card filter-section" aria-labelledby="filterTitle">
+          <div class="section-head"><h2 id="filterTitle">Search & Filters</h2></div>
+          <div class="filters">
+            <input type="search" id="search" placeholder="Search description, category...">
+            <select id="filterCategory">
+              <option value="">All categories</option>
+              <option>Salary</option><option>Business</option><option>Food</option>
+              <option>Transport</option><option>Bills</option><option>Entertainment</option><option>Other</option>
             </select>
+            <label class="date-range"><span>From</span><input type="date" id="fromDate"></label>
+            <label class="date-range"><span>To</span><input type="date" id="toDate"></label>
+            <select id="sortBy">
+              <option value="date_desc">Sort: Newest</option>
+              <option value="date_asc">Sort: Oldest</option>
+              <option value="amount_desc">Sort: Highest amount</option>
+              <option value="amount_asc">Sort: Lowest amount</option>
+            </select>
+            <button id="applyFilters" class="filter-btn">Apply</button>
+            <button id="resetFilters" class="filter-btn subtle">Reset</button>
           </div>
-          <div class="form-row">
-            <label for="amount">Amount (use negative for expense)</label>
-            <input type="number" id="amount" placeholder="e.g., 1200 or -500" required step="0.01">
+        </section>
+
+        <section class="card list-section" aria-labelledby="listTitle">
+          <div class="section-head"><h2 id="listTitle">Transactions</h2></div>
+          <div class="table-wrap">
+            <table id="transactionTable">
+              <thead><tr><th>Date</th><th>Description</th><th>Category</th><th class="numeric">Amount (₦)</th><th>Actions</th></tr></thead>
+              <tbody id="transactionList"></tbody>
+            </table>
           </div>
-          <div class="form-actions">
-            <button type="submit" id="addBtn">Save Transaction</button>
-            <button type="button" id="clearBtn">Clear</button>
+        </section>
+
+        <section class="card charts-section" aria-labelledby="chartsTitle">
+          <div class="section-head"><h2 id="chartsTitle">Visuals</h2></div>
+          <div class="charts">
+            <div class="chart-card"><canvas id="incomeExpenseChart" height="160" aria-label="Income vs Expense chart"></canvas></div>
+            <div class="chart-card"><canvas id="categoryChart" height="160" aria-label="Category breakdown chart"></canvas></div>
           </div>
-        </form>
-      </section>
-
-      <section class="filter-section" aria-labelledby="filterTitle">
-        <h2 id="filterTitle">Search & Filters</h2>
-        <div class="filters">
-          <input type="search" id="search" placeholder="Search description, category...">
-          <select id="filterCategory">
-            <option value="">All categories</option>
-            <option>Salary</option>
-            <option>Business</option>
-            <option>Food</option>
-            <option>Transport</option>
-            <option>Bills</option>
-            <option>Entertainment</option>
-            <option>Other</option>
-          </select>
-          <label class="date-range">
-            <span>From</span>
-            <input type="date" id="fromDate">
-          </label>
-          <label class="date-range">
-            <span>To</span>
-            <input type="date" id="toDate">
-          </label>
-          <select id="sortBy">
-            <option value="date_desc">Sort: Newest</option>
-            <option value="date_asc">Sort: Oldest</option>
-            <option value="amount_desc">Sort: Highest amount</option>
-            <option value="amount_asc">Sort: Lowest amount</option>
-          </select>
-          <button id="applyFilters">Apply</button>
-          <button id="resetFilters">Reset</button>
-        </div>
-      </section>
-
-      <section class="list-section" aria-labelledby="listTitle">
-        <h2 id="listTitle">Transactions</h2>
-        <div class="table-wrap">
-          <table id="transactionTable">
-            <thead>
-              <tr>
-                <th>Date</th>
-                <th>Description</th>
-                <th>Category</th>
-                <th class="numeric">Amount (₦)</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody id="transactionList"></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section class="charts-section" aria-labelledby="chartsTitle">
-        <h2 id="chartsTitle">Visuals</h2>
-        <div class="charts">
-          <canvas id="incomeExpenseChart" height="160" aria-label="Income vs Expense chart"></canvas>
-          <canvas id="categoryChart" height="160" aria-label="Category breakdown chart"></canvas>
-        </div>
-      </section>
-    </main>
-
+        </section>
+      </main>
+    </div>
     <div id="toast" role="status" aria-live="polite" class="toast" hidden></div>
   </div>
-
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="script.js"></script>
 </body>

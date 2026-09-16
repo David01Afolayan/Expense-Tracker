@@ -41,7 +41,15 @@
 
   // Utilities
   const uid = () => '_' + Math.random().toString(36).slice(2,9);
-  const money = v => Number(v).toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  const money = v => {
+    const num = Number(v) || 0;
+    return num.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2});
+  };
+  const formatMoney = value => {
+    const num = Number(value) || 0;
+    const sign = num < 0 ? '-₦' : '₦';
+    return sign + money(Math.abs(num));
+  };
   const showToast = (msg, timeout=2500)=>{
     if(!refs.toast) return; refs.toast.hidden=false; refs.toast.textContent=msg;
     clearTimeout(refs._toastTimer);
@@ -56,29 +64,39 @@
     }catch(e){transactions=[]}
   }
   function save(){
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
+      return true;
+    }catch(err){
+      console.error('Storage error:', err);
+      showToast('Storage unavailable — changes may not persist', 3000);
+      return false;
+    }
   }
 
   // CRUD
   function addTransaction(tx){
     tx.id = tx.id || uid();
     transactions.push(tx);
-    save();
+    if(!save()) { render(); return; }
     render();
     showToast('Transaction saved');
   }
   function updateTransaction(id, patch){
     const i = transactions.findIndex(t=>t.id===id); if(i<0) return;
     transactions[i] = {...transactions[i], ...patch};
-    save(); render(); showToast('Transaction updated');
+    if(!save()) { render(); return; }
+    render(); showToast('Transaction updated');
   }
   function deleteTransaction(id){
     const i = transactions.findIndex(t=>t.id===id); if(i<0) return;
     lastDeleted = transactions.splice(i,1)[0];
-    save(); render(); refs.undoBtn.disabled=false; showToast('Transaction deleted');
+    if(!save()) { render(); refs.undoBtn.disabled=false; return; }
+    render(); refs.undoBtn.disabled=false; showToast('Transaction deleted');
   }
   function undoDelete(){
-    if(!lastDeleted) return; transactions.push(lastDeleted); lastDeleted=null; save(); render(); refs.undoBtn.disabled=true; showToast('Undo successful');
+    if(!lastDeleted) return; transactions.push(lastDeleted); lastDeleted=null; if(!save()) { render(); refs.undoBtn.disabled=true; return; }
+    render(); refs.undoBtn.disabled=true; showToast('Undo successful');
   }
 
   // Rendering
@@ -88,12 +106,12 @@
     renderCharts();
   }
   function renderSummary(){
-    const incomeTotal = transactions.filter(t=>t.amount>0).reduce((s,t)=>s+t.amount,0);
-    const expenseTotal = transactions.filter(t=>t.amount<0).reduce((s,t)=>s+t.amount,0);
+    const incomeTotal = transactions.filter(t=>Number(t.amount)>0).reduce((s,t)=>s+Number(t.amount),0);
+    const expenseTotal = transactions.filter(t=>Number(t.amount)<0).reduce((s,t)=>s+Number(t.amount),0);
     const balance = incomeTotal + expenseTotal;
-    refs.income.textContent = '₦' + money(incomeTotal);
+    refs.income.textContent = formatMoney(incomeTotal);
     refs.expense.textContent = '₦' + money(Math.abs(expenseTotal));
-    refs.balance.textContent = '₦' + money(balance);
+    refs.balance.textContent = formatMoney(balance);
   }
 
   function matchesFilters(tx){
@@ -136,7 +154,7 @@
       const dateTd = document.createElement('td'); dateTd.textContent = new Date(tx.date).toLocaleDateString(); dateTd.setAttribute('data-label','Date');
       const descTd = document.createElement('td'); descTd.textContent = tx.description; descTd.setAttribute('data-label','Description');
       const catTd = document.createElement('td'); catTd.textContent = tx.category; catTd.setAttribute('data-label','Category');
-      const amtTd = document.createElement('td'); amtTd.className='numeric'; amtTd.textContent = money(tx.amount); amtTd.setAttribute('data-label','Amount');
+      const amtTd = document.createElement('td'); amtTd.className='numeric'; amtTd.textContent = formatMoney(tx.amount); amtTd.setAttribute('data-label','Amount');
       const actTd = document.createElement('td'); actTd.className='actions'; actTd.setAttribute('data-label','Actions');
 
       const editBtn = document.createElement('button'); editBtn.textContent='Edit'; editBtn.addEventListener('click', ()=>openEdit(tx.id));
@@ -213,14 +231,40 @@
   function clearForm(){ refs.txId.value=''; refs.form.reset(); refs.addBtn.textContent='Save Transaction'; }
 
   // Export / Import
+  function parseCsvLine(line){
+    const cells = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        cells.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+
+    cells.push(current);
+    return cells.map(cell => cell.trim());
+  }
+
   function exportJSON(){
     const data = JSON.stringify(transactions, null, 2);
     downloadFile('transactions.json', data, 'application/json');
   }
   function exportCSV(){
     const rows = [['id','date','description','category','amount']];
-    transactions.forEach(t=> rows.push([t.id, t.date, `"${t.description.replace(/"/g,'""')}"`, t.category, t.amount]));
-    const csv = rows.map(r=>r.join(',')).join('\n');
+    transactions.forEach(t=> rows.push([t.id, t.date, `"${String(t.description || '').replace(/"/g,'""')}"`, t.category, Number(t.amount) || 0]));
+    const csv = rows.map(r=>r.map(v=>typeof v === 'string' ? v : String(v)).join(',')).join('\n');
     downloadFile('transactions.csv', csv, 'text/csv');
   }
   function downloadFile(name, data, type){
@@ -236,20 +280,23 @@
         if(file.type.includes('json') || file.name.endsWith('.json')){
           const arr = JSON.parse(text);
           if(Array.isArray(arr)){
-            // Basic shape check
-            const cleaned = arr.map(a=>({id:a.id||uid(), date:a.date||new Date().toISOString().slice(0,10), description:a.description||'', category:a.category||'Other', amount: Number(a.amount)||0}));
-            transactions = transactions.concat(cleaned); save(); render(); showToast('Imported JSON');
+            const cleaned = arr.map(a=>({id:a.id||uid(), date:a.date||new Date().toISOString().slice(0,10), description:String(a.description||''), category:a.category||'Other', amount: Number(a.amount)||0}));
+            transactions = transactions.concat(cleaned);
+            if(!save()) { render(); return; }
+            render(); showToast('Imported JSON');
           }
         } else {
-          // try csv
           const lines = text.split(/\r?\n/).filter(Boolean);
-          const data = lines.slice(1).map(l=>{
-            const cols = l.split(',');
+          if(lines.length < 2){ throw new Error('CSV is empty'); }
+          const data = lines.slice(1).map(line => {
+            const cols = parseCsvLine(line);
             return {id: cols[0]||uid(), date: cols[1]||new Date().toISOString().slice(0,10), description: (cols[2]||'').replace(/^\"|\"$/g,''), category: cols[3]||'Other', amount: Number(cols[4])||0};
           });
-          transactions = transactions.concat(data); save(); render(); showToast('Imported CSV');
+          transactions = transactions.concat(data);
+          if(!save()) { render(); return; }
+          render(); showToast('Imported CSV');
         }
-      }catch(err){ showToast('Import failed'); }
+      }catch(err){ console.error('Import failed', err); showToast('Import failed'); }
     };
     reader.readAsText(file);
   }
