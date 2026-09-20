@@ -2,7 +2,7 @@
 
 A personal finance tracker that saves expenses to local storage, shows balance, and visualizes spending with charts.
 
-**Live Demo:** https://your-link.vercel.app
+**Live Demo:** https://david01afolayan.github.io/Expense-Tracker/
 **Repo:** https://github.com/David01Afolayan/Expense-tracker
 
 ## Features
